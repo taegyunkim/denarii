@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 rand = "0.7.2"
 float-cmp = "0.5.3"
+clap = "~2.27.0"
 
 [dev-dependencies.cargo-husky]
 version = "1"
