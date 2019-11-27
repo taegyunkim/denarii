@@ -8,3 +8,4 @@ mod drf;
 pub trait Algorithm {
     fn allocate(&self, resources: &[f64], demands: &[Vec<f64>]) -> Vec<f64>;
 }
+
