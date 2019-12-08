@@ -4,15 +4,15 @@ use crate::gurobi::ffi::{GurobiOptimizer, GurobiVar};
 pub struct Drf {}
 
 impl Algorithm for Drf {
-    fn allocate(&self, resources: &[f64], demands: &[Vec<f64>]) -> Vec<f64> {
+    fn allocate(&self, resources: &[f64], demands: &[vec<f64>]) -> vec<f64> {
         let num_resources = resources.len();
         for demand in demands {
             assert!(demand.len() == num_resources);
         }
-        let mut optimizer = GurobiOptimizer::new("mip1");
-        let coeffs: Vec<GurobiVar> = demands
+        let mut optimizer = gurobioptimizer::new("mip1");
+        let coeffs: vec<gurobivar> = demands
             .iter()
-            .map(|_| optimizer.add_var('C', true))
+            .map(|_| optimizer.add_var('c', true))
             .collect();
 
         // Add constraint for each type of resources.
