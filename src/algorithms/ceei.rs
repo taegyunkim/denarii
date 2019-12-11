@@ -4,7 +4,7 @@ use crate::gurobi::ffi::{GurobiOptimizer, GurobiVar};
 pub struct Ceei {}
 
 impl Algorithm for Ceei {
-    fn allocate(&self, resources: &Vec<f64>, demands: &Vec<Vec<f64>>) -> Vec<f64> {
+    fn allocate(&self, resources: &[f64], demands: &[Vec<f64>]) -> Vec<f64> {
         let num_resources = resources.len();
         for demand in demands {
             assert!(demand.len() == num_resources);
@@ -19,17 +19,17 @@ impl Algorithm for Ceei {
         for i in 0..num_resources {
             optimizer.add_constraint(
                 &coeffs,
-                &demands.iter().map(|demand| demand[i]).collect(),
+                &demands.iter().map(|demand| demand[i]).collect::<Vec<f64>>(),
                 '<',
                 resources[i],
             );
         }
         optimizer.optimize("max");
 
-        return coeffs
+        coeffs
             .iter()
             .map(|var| *optimizer.solutions.get(&var).unwrap())
-            .collect();
+            .collect()
     }
 }
 

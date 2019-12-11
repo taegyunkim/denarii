@@ -1,5 +1,4 @@
 pub use std::os::raw::{c_char, c_double, c_int, c_void};
-pub type c_str = *const c_char;
 
 use std::collections::HashMap;
 use std::convert::TryInto;
@@ -27,18 +26,18 @@ macro_rules! gurobi_try {
 
 extern "C" {
     // Constructors
-    pub fn GRBloadenv(envP: *mut *mut GRBenv, logfilename: c_str) -> c_int;
+    pub fn GRBloadenv(envP: *mut *mut GRBenv, logfilename: *const c_char) -> c_int;
 
     pub fn GRBnewmodel(
         env: *mut GRBenv,
         modelP: *mut *mut GRBmodel,
-        Pname: c_str,
+        Pname: *const c_char,
         numvars: c_int,
         obj: *const c_double,
         lb: *const c_double,
         ub: *const c_double,
         vtype: *const c_char,
-        varnames: *const c_str,
+        varnames: *const *const c_char,
     ) -> c_int;
 
     // Destructors
@@ -56,7 +55,7 @@ extern "C" {
         lb: f64,
         ub: f64,
         vtype: c_char,
-        name: c_str,
+        name: *const c_char,
     ) -> c_int;
 
     // Constraints
@@ -67,34 +66,46 @@ extern "C" {
         cval: *const c_double,
         sense: c_char,
         rhs: c_double,
-        constrname: c_str,
+        constrname: *const c_char,
     ) -> c_int;
 
     // Optimize
     pub fn GRBoptimize(model: *mut GRBmodel) -> c_int;
 
     // Diagnostics
-    pub fn GRBgeterrormsg(env: *mut GRBenv) -> c_str;
+    pub fn GRBgeterrormsg(env: *mut GRBenv) -> *const c_char;
 
+    #[allow(dead_code)]
     // Control solver operation (https://www.gurobi.com/documentation/8.1/refman/parameters.html)
-    pub fn GRBsetparam(env: *mut GRBenv, paramname: c_str, value: c_str);
+    pub fn GRBsetparam(env: *mut GRBenv, paramname: *const c_char, value: *const c_char);
 
+    #[allow(dead_code)]
     // Retrieve solutions (https://www.gurobi.com/documentation/8.1/refman/attributes.html)
-    pub fn GRBgetdblattr(model: *mut GRBmodel, attrname: c_str, valueP: *mut c_double) -> c_int;
+    pub fn GRBgetdblattr(
+        model: *mut GRBmodel,
+        attrname: *const c_char,
+        valueP: *mut c_double,
+    ) -> c_int;
 
-    pub fn GRBgetintattr(model: *mut GRBmodel, attrname: c_str, valueP: *mut c_int) -> c_int;
+    #[allow(dead_code)]
+    pub fn GRBgetintattr(
+        model: *mut GRBmodel,
+        attrname: *const c_char,
+        valueP: *mut c_int,
+    ) -> c_int;
 
     pub fn GRBgetdblattrelement(
         model: *mut GRBmodel,
-        attrname: c_str,
+        attrname: *const c_char,
         element: c_int,
         valueP: *mut c_double,
     ) -> c_int;
 
-    pub fn GRBsetintattr(model: *mut GRBmodel, attrname: c_str, value: c_int) -> c_int;
+    pub fn GRBsetintattr(model: *mut GRBmodel, attrname: *const c_char, value: c_int) -> c_int;
 
+    #[allow(dead_code)]
     // Write to file
-    pub fn GRBwrite(model: *mut GRBmodel, filename: c_str) -> c_int;
+    pub fn GRBwrite(model: *mut GRBmodel, filename: *const c_char) -> c_int;
 }
 
 pub struct GurobiOptimizer {
@@ -138,7 +149,7 @@ impl GurobiOptimizer {
                 optimizer.env
             );
         }
-        return optimizer;
+        optimizer
     }
     pub fn add_var(&mut self, var_type: char, is_objective: bool) -> GurobiVar {
         assert!(
@@ -164,12 +175,12 @@ impl GurobiOptimizer {
         }
         self.vars.push(self.var_index);
         self.var_index += 1;
-        return self.var_index - 1; // return newly created index.
+        self.var_index - 1 // return newly created index.
     }
     pub fn add_constraint(
         &mut self,
-        lhs_vars: &Vec<(GurobiVar)>,
-        lhs_coeffs: &Vec<f64>,
+        lhs_vars: &[GurobiVar],
+        lhs_coeffs: &[f64],
         sense: char,
         rhs: f64,
     ) {
@@ -205,19 +216,19 @@ impl GurobiOptimizer {
         }
         for var in self.vars.clone() {
             self.solutions
-                .insert(var.to_owned(), self.get_solution(&var));
+                .insert(var.to_owned(), self.get_solution(var));
         }
     }
-    fn get_solution(&self, var: &GurobiVar) -> f64 {
+    fn get_solution(&self, var: GurobiVar) -> f64 {
         let x_str = CString::new("X").expect("CString::new failed");
         let mut x: f64 = 0.0;
         unsafe {
             gurobi_try!(
-                GRBgetdblattrelement(self.model, x_str.as_ptr(), *var, &mut x as *mut f64),
+                GRBgetdblattrelement(self.model, x_str.as_ptr(), var, &mut x as *mut f64),
                 self.env
             );
         }
-        return x;
+        x
     }
 }
 
