@@ -4,7 +4,7 @@ use crate::gurobi::ffi::{GurobiOptimizer, GurobiVar};
 pub struct Drf {}
 
 impl Algorithm for Drf {
-    fn allocate(&self, resources: &Vec<f64>, demands: &Vec<Vec<f64>>) -> Vec<f64> {
+    fn allocate(&self, resources: &[f64], demands: &[Vec<f64>]) -> Vec<f64> {
         let num_resources = resources.len();
         for demand in demands {
             assert!(demand.len() == num_resources);
@@ -19,7 +19,7 @@ impl Algorithm for Drf {
         for i in 0..num_resources {
             optimizer.add_constraint(
                 &coeffs,
-                &demands.iter().map(|demand| demand[i]).collect(),
+                &demands.iter().map(|demand| demand[i]).collect::<Vec<f64>>(),
                 '<',
                 resources[i],
             );
@@ -40,18 +40,18 @@ impl Algorithm for Drf {
         // Equalize dominant shares.
         for i in 0..demands.len() - 1 {
             optimizer.add_constraint(
-                &vec![coeffs[i], coeffs[i + 1]],
-                &vec![dominant_shares[i], -dominant_shares[i + 1]],
+                &[coeffs[i], coeffs[i + 1]],
+                &[dominant_shares[i], -dominant_shares[i + 1]],
                 '=',
                 0.0,
             );
         }
         optimizer.optimize("max");
 
-        return coeffs
+        coeffs
             .iter()
             .map(|var| *optimizer.solutions.get(&var).unwrap())
-            .collect();
+            .collect()
     }
 }
 

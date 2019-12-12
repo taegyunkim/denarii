@@ -16,7 +16,7 @@ fn dot_product(a: &[f64], b: &[f64]) -> f64 {
 }
 
 impl Algorithm for AssetFairness {
-    fn allocate(&self, resources: &Vec<f64>, demands: &Vec<Vec<f64>>) -> Vec<f64> {
+    fn allocate(&self, resources: &[f64], demands: &[Vec<f64>]) -> Vec<f64> {
         let num_resources = resources.len();
         assert!(num_resources == self.prices.len());
         for demand in demands {
@@ -32,7 +32,7 @@ impl Algorithm for AssetFairness {
         for i in 0..num_resources {
             optimizer.add_constraint(
                 &coeffs,
-                &demands.iter().map(|demand| demand[i]).collect(),
+                &demands.iter().map(|demand| demand[i]).collect::<Vec<f64>>(),
                 '<',
                 resources[i],
             );
@@ -41,8 +41,8 @@ impl Algorithm for AssetFairness {
         // Every user spends the same.
         for i in 0..demands.len() - 1 {
             optimizer.add_constraint(
-                &vec![coeffs[i], coeffs[i + 1]],
-                &vec![
+                &[coeffs[i], coeffs[i + 1]],
+                &[
                     dot_product(&demands[i], &self.prices),
                     -dot_product(&demands[i + 1], &self.prices),
                 ],
@@ -52,10 +52,10 @@ impl Algorithm for AssetFairness {
         }
         optimizer.optimize("max");
 
-        return coeffs
+        coeffs
             .iter()
             .map(|var| *optimizer.solutions.get(&var).unwrap())
-            .collect();
+            .collect()
     }
 }
 
