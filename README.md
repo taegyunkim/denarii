@@ -1,6 +1,8 @@
 # Denarii: Multi tenant support for SmartNICs
 
-# Install Gurobi
+# Install Gurobi 8.1.1
+
+We have only tested this crate with 8.1.1.
 
 Follow instructions in [Gurobi Documentation](https://www.gurobi.com/documentation/quickstart.html)
 to install and setup license key for your machine.
