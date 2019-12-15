@@ -10,7 +10,6 @@ use rand::distributions::{Bernoulli, Distribution};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use simulator::Packet;
-use std::collections::HashSet;
 
 // Args for the program
 // n the number of packets to generate
@@ -54,7 +53,6 @@ fn main() {
     let num_resources = 2;
 
     let capacity: Vec<f64> = (0..num_resources).map(|x| (x as f64) * 10.0).collect();
-    let mut available: Vec<f64> = capacity.clone();
     let mut latencies: Vec<u64> = Vec::new();
 
     let alg = algorithms::Drf {};
@@ -70,7 +68,7 @@ fn main() {
                 .collect();
             println!("{}, {}, {:?}", t, service_time, resource_req);
 
-            let mut p: Packet = Packet::new(num_pkts, t, service_time, resource_req);
+            let p: Packet = Packet::new(num_pkts, t, service_time, resource_req);
             num_pkts += 1;
             pkts.push(p);
         }

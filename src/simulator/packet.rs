@@ -20,12 +20,12 @@ pub struct Packet {
 }
 
 impl Packet {
-    pub fn new(id: u64, t: u64, service_time: f64, resource_req: Vec<f64>) -> Packet {
+    pub fn new(id: u64, t_arrival: u64, service_time: f64, resource_req: Vec<f64>) -> Packet {
         Packet {
-            id: id,
-            t_arrival: t,
-            resource_req: resource_req,
-            service_time: service_time,
+            id,
+            t_arrival,
+            resource_req,
+            service_time,
             ..Default::default()
         }
     }
@@ -42,24 +42,22 @@ impl Packet {
         if done {
             self.t_departure = t
         }
-        return done;
+        done
     }
 
-    pub fn is_completed(&mut self) -> bool {
-        return self.adjusted_service_time > self.service_time;
+    pub fn is_completed(&self) -> bool {
+        self.adjusted_service_time >= self.service_time
     }
-    pub fn is_scheduled(&mut self) -> bool {
-        return self.resource_alloc.len() > 0;
+
+    pub fn is_scheduled(&self) -> bool {
+        !self.resource_alloc.is_empty()
     }
 
     /// Returns the number of ticks it actually took to service this packet.
     /// Make sure you check whether this packet is completed, using
     /// is_completed().
-    pub fn latency(&mut self) -> u64 {
-        if self.t_arrival < 0 {
-            return 0;
-        }
-        return self.t_departure - self.t_arrival;
+    pub fn latency(&self) -> u64 {
+        self.t_departure - self.t_arrival
     }
 }
 
