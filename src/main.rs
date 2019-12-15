@@ -11,12 +11,6 @@ use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use simulator::Packet;
 
-// Args for the program
-// n the number of packets to generate
-// lambda the average packet inter arrival time (in msec?) for poisson
-// distribution
-// mu the average packet processing time (in msec)
-
 fn main() {
     let matches = App::new("Denarii")
         .version("0.1.0")
@@ -52,6 +46,8 @@ fn main() {
     let a_dist = Bernoulli::new(p).unwrap();
     let num_resources = 2;
 
+    // TODO: Provide ways to set initial capacity of resources, 1) commandline
+    // argument, 2) randomly generate them.
     let capacity: Vec<f64> = (0..num_resources)
         .map(|x| ((x + 1) as f64) * 10.0)
         .collect();
@@ -83,12 +79,15 @@ fn main() {
             let done = pkt.step(t);
 
             if done {
+                // TODO: Move instead of copy.
                 completed.push(pkt.clone());
                 done_pkts += 1;
             }
         }
 
+        // Remove packets that are completed.
         pkts.retain(|pkt| !pkt.is_completed());
+
         // Check whether a new allocation needs to happen
         if !pkts.is_empty() && (add_new_packet || done_pkts > 0) {
             let mut requests: Vec<Vec<f64>> = Vec::new();
