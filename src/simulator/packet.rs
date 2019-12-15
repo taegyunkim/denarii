@@ -30,13 +30,15 @@ impl Packet {
         }
     }
 
+    /// Steps to time t.
     pub fn step(&mut self, t: u64) -> bool {
         if !self.is_scheduled() {
             return false;
         }
+        assert!(t > self.t_arrival);
 
         let ratio = self.resource_alloc[0] / self.resource_req[0];
-        self.adjusted_service_time += ratio;
+        self.adjusted_service_time += ratio * ((t - self.t_arrival) as f64);
 
         let done = self.is_completed();
         if done {
@@ -53,6 +55,11 @@ impl Packet {
         !self.resource_alloc.is_empty()
     }
 
+    #[allow(dead_code)]
+    pub fn schedule(&mut self, alloc: Vec<f64>) {
+        self.resource_alloc = alloc;
+    }
+
     /// Returns the number of ticks it actually took to service this packet.
     /// Make sure you check whether this packet is completed, using
     /// is_completed().
@@ -66,10 +73,33 @@ impl PartialEq for Packet {
         self.id == other.id
     }
 }
+
 impl Eq for Packet {}
 
 impl Hash for Packet {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn simple() {
+        let mut p = Packet::new(1, 3, 5.0, vec![2.0, 3.0]);
+        assert_eq!(p.id, 1);
+        assert_eq!(p.t_arrival, 3);
+        assert_eq!(p.service_time, 5.0);
+        assert_eq!(p.resource_req, [2.0, 3.0]);
+        assert_eq!(p.is_completed(), false);
+        assert_eq!(p.is_scheduled(), false);
+        p.schedule(vec![1.0, 1.5]);
+        assert!(p.is_scheduled());
+        // Service time is set to 5 and it was allocated with half of what it
+        // requested. So needs 5 * 2 ticks to complete.
+        p.step(p.t_arrival + 10);
+        assert!(p.is_completed());
     }
 }
