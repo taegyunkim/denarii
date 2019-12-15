@@ -1,7 +1,7 @@
 use std::cmp::{Eq, PartialEq};
 use std::hash::{Hash, Hasher};
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Packet {
     /// Packet ID
     id: u64,
@@ -55,11 +55,11 @@ impl Packet {
         !self.resource_alloc.is_empty()
     }
 
-    #[allow(dead_code)]
-    pub fn schedule(&mut self, alloc: Vec<f64>) {
+    pub fn allocate(&mut self, alloc: Vec<f64>) {
         self.resource_alloc = alloc;
     }
 
+    #[allow(dead_code)]
     /// Returns the number of ticks it actually took to service this packet.
     /// Make sure you check whether this packet is completed, using
     /// is_completed().
@@ -95,7 +95,7 @@ mod tests {
         assert_eq!(p.resource_req, [2.0, 3.0]);
         assert_eq!(p.is_completed(), false);
         assert_eq!(p.is_scheduled(), false);
-        p.schedule(vec![1.0, 1.5]);
+        p.allocate(vec![1.0, 1.5]);
         assert!(p.is_scheduled());
         // Service time is set to 5 and it was allocated with half of what it
         // requested. So needs 5 * 2 ticks to complete.

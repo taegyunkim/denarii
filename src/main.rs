@@ -43,17 +43,18 @@ fn main() {
 
     let ticks = matches.value_of("ticks").unwrap().parse::<u64>().unwrap();
 
-    let mut allocated_pkts: Vec<Packet> = Vec::new();
     // Packets not allocated
     let mut pkts: Vec<Packet> = Vec::new();
+    let mut completed: Vec<Packet> = Vec::new();
 
     let p = 0.3;
     // Distribution for packet arrivals.
     let a_dist = Bernoulli::new(p).unwrap();
     let num_resources = 2;
 
-    let capacity: Vec<f64> = (0..num_resources).map(|x| (x as f64) * 10.0).collect();
-    let mut latencies: Vec<u64> = Vec::new();
+    let capacity: Vec<f64> = (0..num_resources)
+        .map(|x| ((x + 1) as f64) * 10.0)
+        .collect();
 
     let alg = algorithms::Drf {};
 
@@ -66,7 +67,10 @@ fn main() {
             let resource_req: Vec<f64> = (0..num_resources)
                 .map(|_| rng.gen_range(1, 11) as f64)
                 .collect();
-            println!("{}, {}, {:?}", t, service_time, resource_req);
+            println!(
+                "t:{}, service_time:{}, resource_req:{:?}",
+                t, service_time, resource_req
+            );
 
             let p: Packet = Packet::new(num_pkts, t, service_time, resource_req);
             num_pkts += 1;
@@ -75,28 +79,54 @@ fn main() {
 
         // Step each packet.
         let mut done_pkts = 0;
-        for packet in &mut allocated_pkts {
-            let done = packet.step(t);
+        for pkt in &mut pkts {
+            let done = pkt.step(t);
 
             if done {
-                latencies.push(packet.latency());
-                done_pkts += 1
+                completed.push(pkt.clone());
+                done_pkts += 1;
             }
         }
+
+        pkts.retain(|pkt| !pkt.is_completed());
         // Check whether a new allocation needs to happen
-        if add_new_packet || done_pkts > 0 {
+        if !pkts.is_empty() && (add_new_packet || done_pkts > 0) {
             let mut requests: Vec<Vec<f64>> = Vec::new();
             for pkt in &mut pkts {
                 requests.push(pkt.resource_req.clone());
             }
 
-            let allocs = alg.allocate(&capacity, &requests);
-
-            println!("{:?}", allocs);
+            println!(
+                "t: {}, capacity: {:?} requests: {:?}",
+                t, capacity, requests
+            );
+            let coeffs = alg.allocate(&capacity, &requests);
+            assert!(coeffs.len() == pkts.len());
+            for i in 0..pkts.len() {
+                let coeff = coeffs[i];
+                let pkt = &mut pkts[i];
+                let alloc = pkt.resource_req.iter().map(|x| x * coeff).collect();
+                pkt.allocate(alloc);
+            }
         }
+    }
 
-        // Run the algorithm
+    for pkt in &completed {
+        println!("{:?}", pkt);
     }
 
     println!("{}: Total number of packets", num_pkts);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn conatiner_ops() {
+        let mut pkts: Vec<Packet> = Vec::new();
+        pkts.push(Packet::new(1, 1, 2.0, vec![1.0, 2.0]));
+        pkts.retain(|pkt| pkt.is_scheduled());
+        assert!(pkts.is_empty());
+    }
 }
