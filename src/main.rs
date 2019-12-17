@@ -90,23 +90,7 @@ fn main() {
 
         // Check whether a new allocation needs to happen
         if !pkts.is_empty() && (add_new_packet || done_pkts > 0) {
-            let mut requests: Vec<Vec<f64>> = Vec::new();
-            for pkt in &mut pkts {
-                requests.push(pkt.resource_req.clone());
-            }
-
-            println!(
-                "t: {}, capacity: {:?} requests: {:?}",
-                t, capacity, requests
-            );
-            let coeffs = alg.allocate(&capacity, &requests);
-            assert!(coeffs.len() == pkts.len());
-            for i in 0..pkts.len() {
-                let coeff = coeffs[i];
-                let pkt = &mut pkts[i];
-                let alloc = pkt.resource_req.iter().map(|x| x * coeff).collect();
-                pkt.allocate(alloc);
-            }
+            run_allocation(&mut pkts, t, &capacity, &alg);
         }
     }
 
@@ -115,6 +99,23 @@ fn main() {
     }
 
     println!("{}: Total number of packets", num_pkts);
+}
+
+fn run_allocation(pkts: &mut [Packet], t: u64, capacity: &[f64], alg: &dyn Algorithm) {
+    let mut requests: Vec<Vec<f64>> = Vec::new();
+    for pkt in pkts.iter() {
+        requests.push(pkt.resource_req.clone());
+    }
+    println!(
+        "t: {}, capacity: {:?} requests: {:?}",
+        t, capacity, requests
+    );
+    let coeffs = alg.allocate(&capacity, &requests);
+    assert!(coeffs.len() == pkts.len());
+    for (i, pkt) in pkts.iter_mut().enumerate() {
+        let alloc = pkt.resource_req.iter().map(|x| x * coeffs[i]).collect();
+        pkt.allocate(alloc);
+    }
 }
 
 #[cfg(test)]
