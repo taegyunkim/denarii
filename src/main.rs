@@ -76,7 +76,7 @@ fn main() {
         // Step each packet.
         let mut done_pkts = 0;
         for pkt in &mut pkts {
-            let done = pkt.step(t);
+            let done = pkt.step();
 
             if done {
                 // TODO: Move instead of copy.

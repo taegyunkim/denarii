@@ -30,21 +30,20 @@ impl Packet {
         }
     }
 
-    /// Steps to time t.
-    pub fn step(&mut self, t: u64) -> bool {
+    /// Steps one tick.
+    pub fn step(&mut self) -> bool {
         if !self.is_scheduled() {
             return false;
         }
-        assert!(t > self.t_arrival);
 
+        // Update adjusted service time by the fraction of resources it got.
         let ratio = self.resource_alloc[0] / self.resource_req[0];
-        self.adjusted_service_time += ratio * ((t - self.t_arrival) as f64);
+        self.adjusted_service_time += ratio;
 
-        let done = self.is_completed();
-        if done {
-            self.t_departure = t
-        }
-        done
+        // Also update t_departure by 1.
+        self.t_departure += 1;
+
+        self.is_completed()
     }
 
     pub fn is_completed(&self) -> bool {
@@ -99,7 +98,9 @@ mod tests {
         assert!(p.is_scheduled());
         // Service time is set to 5 and it was allocated with half of what it
         // requested. So needs 5 * 2 ticks to complete.
-        p.step(p.t_arrival + 10);
+        for _ in 0..10 {
+            p.step();
+        }
         assert!(p.is_completed());
     }
 }
