@@ -14,6 +14,9 @@ pub struct Packet {
     service_time: f64,
     /// Actual service time it has gotten so far.
     adjusted_service_time: f64,
+
+    // Dummy packet, default to false
+    is_empty: bool,
 }
 
 impl Packet {
@@ -27,6 +30,13 @@ impl Packet {
         }
     }
 
+    pub fn new_dummy(id: u64) -> Packet{
+        Packet {
+            id,
+            is_empty:true,
+            ..Default::default()
+        }
+    }
     /// Steps one tick.
     pub fn step(&mut self) -> bool {
         if !self.is_scheduled() {
@@ -41,6 +51,10 @@ impl Packet {
         self.t_departure += 1;
 
         self.is_completed()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.is_empty
     }
 
     pub fn is_completed(&self) -> bool {
