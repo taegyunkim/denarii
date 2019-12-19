@@ -8,11 +8,14 @@ edition = "2018"
 
 [dependencies]
 rand = "0.7.2"
+rand_distr = "0.2.2"
 float-cmp = "0.5.3"
 clap = "~2.27.0"
+savefile = "0.3.0"
+savefile-derive = "0.3.0"
+rustc-serialize = "0.3.24"
 
 [dev-dependencies.cargo-husky]
 version = "1"
 default-features = false # Disable features which are enabled by default
 features = ["run-for-all", "precommit-hook", "run-cargo-test", "run-cargo-fmt", "run-cargo-clippy"]
-

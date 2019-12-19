@@ -1,4 +1,4 @@
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Savefile)]
 pub struct Packet {
     /// Packet ID
     id: u64,
@@ -30,10 +30,10 @@ impl Packet {
         }
     }
 
-    pub fn new_dummy(id: u64) -> Packet{
+    pub fn new_dummy(id: u64) -> Packet {
         Packet {
             id,
-            is_empty:true,
+            is_empty: true,
             ..Default::default()
         }
     }
@@ -53,6 +53,14 @@ impl Packet {
         self.is_completed()
     }
 
+    pub fn load_from_sim(&self) -> Packet {
+        Packet::new(
+            self.id,
+            self.t_arrival,
+            self.service_time,
+            self.resource_req.to_vec(),
+        )
+    }
     pub fn is_empty(&self) -> bool {
         self.is_empty
     }
