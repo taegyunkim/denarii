@@ -24,6 +24,7 @@ impl Packet {
         Packet {
             id,
             t_arrival,
+            t_departure: t_arrival,
             resource_req,
             service_time,
             ..Default::default()
