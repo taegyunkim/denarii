@@ -150,7 +150,6 @@ fn main() {
             continue;
         }
 
-        // TODO: Poisson could give multiple arrivals per timestep
         num_pkts += 1;
         pkts.push(pa);
 
@@ -182,9 +181,6 @@ fn main() {
 }
 
 fn store_traces(key: HashMap<&str, usize>, traces: &Vec<Vec<Packet>>) {
-    // store based on key.dist...
-
-    // best to use parquet and interface with spark?gi
     for (i, item) in traces.iter().enumerate() {
         save_file(key_to_filename(&key, i), 0, item).unwrap();
     }
@@ -231,9 +227,7 @@ fn traces_poi(
                     pkts.push(pa);
                 }
             } else {
-                // At leasr 1 packet per tick?
-                // so we ought to construct an empty packet?
-                // id = tick
+                // Construct an empty packet for the tick.
                 let emp: Packet = Packet::new_dummy(tid as u64);
                 pkts.push(emp);
             }
@@ -257,11 +251,10 @@ fn traces_bern(
         let mut num_pkts = 0;
 
         for tid in 0..ticks {
-            // There may be multiple at a timestep
             let add_new_packet: bool = dist.sample(&mut rng);
             println!("{} sample", add_new_packet);
 
-            // New Packet(s) coming
+            // New Packet coming
             if add_new_packet {
                 let service_time = rng.gen_range(10, 20) as f64;
                 let resource_req: Vec<f64> = (0..num_resources)
@@ -271,7 +264,7 @@ fn traces_bern(
                     "tid:{}, service_time:{}, resource_req:{:?}",
                     tid, service_time, resource_req
                 );
-                // ID = timestep + num of packets + packet index at its time so it is strictly increasing.
+                // ID = timestep + num of packets; strictly increasing.
                 let pa: Packet = Packet::new(
                     tid as u64 + num_pkts,
                     tid as u64,
@@ -281,9 +274,6 @@ fn traces_bern(
                 num_pkts += 1;
                 pkts.push(pa);
             } else {
-                // At leasr 1 packet per tick?
-                // so we ought to construct an empty packet?
-                // id = tick
                 let emp: Packet = Packet::new_dummy(tid as u64);
                 pkts.push(emp);
             }
@@ -296,10 +286,9 @@ fn traces_bern(
 
 fn generate_trace(key: &HashMap<&str, usize>, rng: StdRng) -> Vec<Vec<Packet>> {
     // generate for MAX_RUN runs and MAX_TRACE ticks
-    // TODO: add type "simulated" to Packet
     let ticks = MAX_TRACE;
     let runs = MAX_RUN;
-    let num_resources = key["num_resources"]; // put these all in key
+    let num_resources = key["num_resources"];
     let distribution_enum = key["distribution"];
 
     // TODO: add poi_lambda in args for Poisson
@@ -316,8 +305,7 @@ fn generate_trace(key: &HashMap<&str, usize>, rng: StdRng) -> Vec<Vec<Packet>> {
 }
 
 fn key_to_filename<'a>(key: &'a HashMap<&str, usize>, ind: usize) -> &'a str {
-    // Must guarantee that `key` has those fields.
-    // Not secure.
+    // Must guarantee that `key` has those fields. Not secure.
     let dist = key["distribution"].to_string()
         + "_"
         + &key["num_resources"].to_string()
@@ -328,11 +316,8 @@ fn key_to_filename<'a>(key: &'a HashMap<&str, usize>, ind: usize) -> &'a str {
 }
 
 fn load_trace(key: HashMap<&str, usize>, _truncate: usize, rng: StdRng) -> Vec<Packet> {
-    // TODO: add a trace class.
-    // TODO: finalize key's fields {runs, distributions, p, lambda, ...}
-    // TODO: Load file based on key content
-    // This is not very efficient.
-    // With given runs, the filename param would also change.
+    // TODO: add a trace class and a key struct.
+    // Load file based on key content
     let traces: Vec<Vec<Packet>> = load_file(key_to_filename(&key, 0), 0).unwrap_or(Vec::new());
 
     // if in cache, load it, truncate and return
@@ -349,7 +334,7 @@ fn load_trace(key: HashMap<&str, usize>, _truncate: usize, rng: StdRng) -> Vec<P
     // if not in cache, store it
     store_traces(key, &gen_traces);
 
-    // truncate and return the first one, if no run param given.
+    // Truncate and return the first one, if no run param given.
     // Truncate up till arrival time < ticks, not using tid!!
     return gen_traces[0][0.._truncate].to_vec();
 }
