@@ -54,12 +54,14 @@ impl Packet {
     }
 
     pub fn load_from_sim(&self) -> Packet {
-        Packet::new(
+        let mut pa = Packet::new(
             self.id,
             self.t_arrival,
             self.service_time,
             self.resource_req.to_vec(),
-        )
+        );
+        pa.is_empty = self.is_empty();
+        return pa;
     }
     pub fn is_empty(&self) -> bool {
         self.is_empty
