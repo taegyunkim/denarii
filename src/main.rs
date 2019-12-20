@@ -17,7 +17,7 @@ use std::collections::HashMap;
 //use rand::distributions::{Bernoulli, Distribution};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
-use rand_distr::{Distribution, Poisson};
+use rand_distr::{Bernoulli, Distribution, Poisson};
 use simulator::Packet;
 
 const MAX_RUN: usize = 4;
@@ -96,8 +96,8 @@ fn main() {
         .unwrap();
 
     // Valid checks
-    if distribution_enum != 1 {
-        println!("Distribution has to be 1.");
+    if distribution_enum != 1 && distribution_enum != 2 {
+        println!("Distribution has to be 1 for poi or 2 for bern.");
         return;
     }
     if runs > MAX_RUN {
@@ -117,14 +117,7 @@ fn main() {
     let mut pkts: Vec<Packet> = Vec::new();
     let mut completed: Vec<Packet> = Vec::new();
 
-    // // Use bernoulli for now.
-    // let p = 0.3;
-    // add a switch for different distributions
-
-    // Distribution for packet arrivals.
-    //let a_dist = Bernoulli::new(p).unwrap();
-
-    // TODO: Provide ways to 2) randomly generate them.
+    // TODO: Provide ways to randomly generate them.
     let capacity: Vec<f64> = (0..num_resources)
         .map(|x| ((x + 1) as f64) * 10.0)
         .collect();
@@ -133,7 +126,7 @@ fn main() {
 
     // parameters for the run
     let mut key = HashMap::new();
-    // 1 for Poisson
+
     key.insert("num_resources", num_resources);
     key.insert("distribution", distribution_enum);
     key.insert("ticks", ticks);
@@ -198,19 +191,13 @@ fn store_traces(key: HashMap<&str, usize>, traces: &Vec<Vec<Packet>>) {
     return;
 }
 
-fn generate_trace(key: &HashMap<&str, usize>, mut rng: StdRng) -> Vec<Vec<Packet>> {
-    // generate for MAX_RUN runs and MAX_TRACE ticks
-    // TODO: add type "simulated" to Packet
-    let ticks = MAX_TRACE;
-    let runs = MAX_RUN;
-    let num_resources = key["num_resources"]; // put these all in key
-
-    // todo: make this dynamic
-    // `if key.distribution = "poisson", key.lambda = 2.0`
-    let poi = Poisson::new(2.0).unwrap();
-    let dist = poi;
-    println!("Generate trace uses key {:?}", key);
-
+fn traces_poi(
+    ticks: usize,
+    runs: usize,
+    num_resources: usize,
+    dist: Poisson<f64>,
+    mut rng: StdRng,
+) -> Vec<Vec<Packet>> {
     let mut traces: Vec<Vec<Packet>> = Vec::new();
     for _ in 0..runs {
         let mut pkts: Vec<Packet> = Vec::new();
@@ -255,6 +242,77 @@ fn generate_trace(key: &HashMap<&str, usize>, mut rng: StdRng) -> Vec<Vec<Packet
         println!("{} packets came from a Poisson(2) distribution", num_pkts);
     }
     return traces;
+}
+
+fn traces_bern(
+    ticks: usize,
+    runs: usize,
+    num_resources: usize,
+    dist: Bernoulli,
+    mut rng: StdRng,
+) -> Vec<Vec<Packet>> {
+    let mut traces: Vec<Vec<Packet>> = Vec::new();
+    for _ in 0..runs {
+        let mut pkts: Vec<Packet> = Vec::new();
+        let mut num_pkts = 0;
+
+        for tid in 0..ticks {
+            // There may be multiple at a timestep
+            let add_new_packet: bool = dist.sample(&mut rng);
+            println!("{} sample", add_new_packet);
+
+            // New Packet(s) coming
+            if add_new_packet {
+                let service_time = rng.gen_range(10, 20) as f64;
+                let resource_req: Vec<f64> = (0..num_resources)
+                    .map(|_| rng.gen_range(1, 11) as f64)
+                    .collect();
+                println!(
+                    "tid:{}, service_time:{}, resource_req:{:?}",
+                    tid, service_time, resource_req
+                );
+                // ID = timestep + num of packets + packet index at its time so it is strictly increasing.
+                let pa: Packet = Packet::new(
+                    tid as u64 + num_pkts,
+                    tid as u64,
+                    service_time,
+                    resource_req,
+                );
+                num_pkts += 1;
+                pkts.push(pa);
+            } else {
+                // At leasr 1 packet per tick?
+                // so we ought to construct an empty packet?
+                // id = tick
+                let emp: Packet = Packet::new_dummy(tid as u64);
+                pkts.push(emp);
+            }
+        }
+        traces.push(pkts);
+        println!("{} packets came from a Poisson(2) distribution", num_pkts);
+    }
+    return traces;
+}
+
+fn generate_trace(key: &HashMap<&str, usize>, rng: StdRng) -> Vec<Vec<Packet>> {
+    // generate for MAX_RUN runs and MAX_TRACE ticks
+    // TODO: add type "simulated" to Packet
+    let ticks = MAX_TRACE;
+    let runs = MAX_RUN;
+    let num_resources = key["num_resources"]; // put these all in key
+    let distribution_enum = key["distribution"];
+
+    // TODO: add poi_lambda in args for Poisson
+    let poi = Poisson::new(2.0).unwrap();
+    // TODO: add bern_p in args for Bernoulli
+    let bern = Bernoulli::new(0.3).unwrap();
+    println!("Generate trace uses key {:?}", key);
+
+    match distribution_enum {
+        1 => return traces_poi(ticks, runs, num_resources, poi, rng),
+        2 => return traces_bern(ticks, runs, num_resources, bern, rng),
+        _ => return traces_poi(ticks, runs, num_resources, Poisson::new(1.0).unwrap(), rng),
+    }
 }
 
 fn key_to_filename<'a>(key: &'a HashMap<&str, usize>, ind: usize) -> &'a str {
