@@ -4,3 +4,4 @@ Cargo.lock
 a.out
 *.log
 *.lp
+*.denarii.data
