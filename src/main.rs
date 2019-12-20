@@ -24,6 +24,7 @@ const MAX_RUN: usize = 4;
 const MAX_TRACE: usize = 10000;
 
 fn main() {
+    // TODO: Put this in a .yaml file
     let matches = App::new("Denarii")
         .version("0.1.0")
         .author("Taegyun Kim <k.taegyun@gmail.com>")
@@ -54,7 +55,7 @@ fn main() {
                 .short("dis")
                 .long("distribution")
                 .default_value("1")
-                .help("Bernoulli Distribution"), // todo: add uni, poi, bern
+                .help("Poisson Distribution"), // todo: add uni, poi, bern
         )
         .arg(
             Arg::with_name("runs")
@@ -62,6 +63,13 @@ fn main() {
                 .long("runs")
                 .default_value("1")
                 .help("The number of runs to run the simulator."),
+        )
+        .arg(
+            Arg::with_name("algorithm")
+                .short("alg")
+                .long("algorithm")
+                .default_value("1")
+                .help("Dominant Fairness Strategy."),
         )
         
         .get_matches();
@@ -81,6 +89,11 @@ fn main() {
         .unwrap()
         .parse::<usize>()
         .unwrap();
+    let algorithm_enum = matches
+        .value_of("algorithm")
+        .unwrap()
+        .parse::<usize>()
+        .unwrap();
 
     // Valid checks
     if distribution_enum != 1 {
@@ -93,6 +106,11 @@ fn main() {
     }
     if ticks > MAX_TRACE {
         println!("Ticks has to be at most {}.", MAX_TRACE);
+        return;
+    }
+    if algorithm_enum != 1 {
+        println!("Algorithm has to be DRF.");
+        return;
     }
 
     // Packets not allocated
@@ -173,16 +191,14 @@ fn main() {
 fn store_traces(key: HashMap<&str, usize>, traces: &Vec<Vec<Packet>>) {
     // store based on key.dist...
 
-    // best to use parquet and interface with spark?
-    println!("{:?}", key);
-    for i in traces {
-        save_file("example_trace", 0, i).unwrap();
+    // best to use parquet and interface with spark?gi
+    for (i, item) in traces.iter().enumerate() {
+        save_file(key_to_filename(&key, i), 0, item).unwrap();
     }
     return;
 }
 
 fn generate_trace(key: &HashMap<&str, usize>, mut rng: StdRng) -> Vec<Vec<Packet>> {
-    // only generates when not in cache
     // generate for MAX_RUN runs and MAX_TRACE ticks
     // TODO: add type "simulated" to Packet
     let ticks = MAX_TRACE;
@@ -241,19 +257,33 @@ fn generate_trace(key: &HashMap<&str, usize>, mut rng: StdRng) -> Vec<Vec<Packet
     return traces;
 }
 
+fn key_to_filename<'a>(key: &'a HashMap<&str, usize>, ind: usize) -> &'a str {
+    // Must guarantee that `key` has those fields.
+    // Not secure.
+    let dist = key["distribution"].to_string()
+        + "_"
+        + &key["num_resources"].to_string()
+        + "_"
+        + &ind.to_string()
+        + ".denarii.data";
+    return Box::leak(dist.into_boxed_str());
+}
+
 fn load_trace(key: HashMap<&str, usize>, _truncate: usize, rng: StdRng) -> Vec<Packet> {
     // TODO: add a trace class.
     // TODO: finalize key's fields {runs, distributions, p, lambda, ...}
     // TODO: Load file based on key content
     // This is not very efficient.
-    let traces: Vec<Vec<Packet>> = load_file("example_trace", 0).unwrap_or(Vec::new());
+    // With given runs, the filename param would also change.
+    let traces: Vec<Vec<Packet>> = load_file(key_to_filename(&key, 0), 0).unwrap_or(Vec::new());
 
     // if in cache, load it, truncate and return
     if traces.len() > 0 {
-        println!("{}", traces.len());
+        println!("Found existing trace of given key.");
         return traces[0][0.._truncate].to_vec();
     }
 
+    // only generates when not in cache
     let gen_traces = generate_trace(&key, rng);
     println!("{} runs generated", gen_traces.len());
     println!("{} packets generated at 0th trace", gen_traces[0].len());
