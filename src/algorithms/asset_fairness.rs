@@ -2,7 +2,7 @@ use super::Algorithm;
 use crate::gurobi::ffi::{GurobiOptimizer, GurobiVar};
 
 pub struct AssetFairness {
-    prices: Vec<f64>,
+    pub prices: Vec<f64>,
 }
 
 fn dot_product(a: &[f64], b: &[f64]) -> f64 {

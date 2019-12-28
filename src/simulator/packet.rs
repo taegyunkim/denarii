@@ -1,4 +1,4 @@
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Savefile)]
 pub struct Packet {
     /// Packet ID
     id: u64,
@@ -14,6 +14,9 @@ pub struct Packet {
     service_time: f64,
     /// Actual service time it has gotten so far.
     adjusted_service_time: f64,
+
+    // Dummy packet, default to false
+    is_empty: bool,
 }
 
 impl Packet {
@@ -21,12 +24,20 @@ impl Packet {
         Packet {
             id,
             t_arrival,
+            t_departure: t_arrival,
             resource_req,
             service_time,
             ..Default::default()
         }
     }
 
+    pub fn new_dummy(id: u64) -> Packet {
+        Packet {
+            id,
+            is_empty: true,
+            ..Default::default()
+        }
+    }
     /// Steps one tick.
     pub fn step(&mut self) -> bool {
         if !self.is_scheduled() {
@@ -41,6 +52,20 @@ impl Packet {
         self.t_departure += 1;
 
         self.is_completed()
+    }
+
+    pub fn load_from_sim(&self) -> Packet {
+        let mut pa = Packet::new(
+            self.id,
+            self.t_arrival,
+            self.service_time,
+            self.resource_req.to_vec(),
+        );
+        pa.is_empty = self.is_empty();
+        return pa;
+    }
+    pub fn is_empty(&self) -> bool {
+        self.is_empty
     }
 
     pub fn is_completed(&self) -> bool {
